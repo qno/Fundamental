@@ -1,40 +1,47 @@
 #include "plugin.hpp"
 
 
-static float clip(float x) {
-	return std::tanh(x);
+using simd::float_4;
+
+
+template <typename T>
+static T clip(T x) {
+	// return std::tanh(x);
+	// Pade approximant of tanh
+	x = simd::clamp(x, -3.f, 3.f);
+	return x * (27 + x * x) / (27 + 9 * x * x);
 }
 
+
+template <typename T>
 struct LadderFilter {
-	float omega0;
-	float resonance = 1.f;
-	float state[4];
-	float input;
-	float lowpass;
-	float highpass;
+	T omega0;
+	T resonance = 1;
+	T state[4];
+	T input;
 
 	LadderFilter() {
 		reset();
-		setCutoff(0.f);
+		setCutoff(0);
 	}
 
 	void reset() {
 		for (int i = 0; i < 4; i++) {
-			state[i] = 0.f;
+			state[i] = 0;
 		}
 	}
 
-	void setCutoff(float cutoff) {
-		omega0 = 2.f*M_PI * cutoff;
+	void setCutoff(T cutoff) {
+		omega0 = 2*M_PI * cutoff;
 	}
 
-	void process(float input, float dt) {
-		dsp::stepRK4(0.f, dt, state, 4, [&](float t, const float x[], float dxdt[]) {
-			float inputc = clip(input - resonance * x[3]);
-			float yc0 = clip(x[0]);
-			float yc1 = clip(x[1]);
-			float yc2 = clip(x[2]);
-			float yc3 = clip(x[3]);
+	void process(T input, T dt) {
+		dsp::stepRK4(T(0), dt, state, 4, [&](T t, const T x[], T dxdt[]) {
+			T inputc = clip(input - resonance * x[3]);
+			T yc0 = clip(x[0]);
+			T yc1 = clip(x[1]);
+			T yc2 = clip(x[2]);
+			T yc3 = clip(x[3]);
 
 			dxdt[0] = omega0 * (inputc - yc0);
 			dxdt[1] = omega0 * (yc0 - yc1);
@@ -42,9 +49,15 @@ struct LadderFilter {
 			dxdt[3] = omega0 * (yc2 - yc3);
 		});
 
-		lowpass = state[3];
+		this->input = input;
+	}
+
+	T lowpass() {
+		return state[3];
+	}
+	T highpass() {
 		// TODO This is incorrect when `resonance > 0`. Is the math wrong?
-		highpass = clip((input - resonance*state[3]) - 4 * state[0] + 6*state[1] - 4*state[2] + state[3]);
+		return clip((input - resonance*state[3]) - 4 * state[0] + 6*state[1] - 4*state[2] + state[3]);
 	}
 };
 
@@ -73,7 +86,7 @@ struct VCF : Module {
 		NUM_OUTPUTS
 	};
 
-	LadderFilter filter;
+	LadderFilter<float_4> filters[4];
 	// Upsampler<UPSAMPLE, 8> inputUpsampler;
 	// Decimator<UPSAMPLE, 8> lowpassDecimator;
 	// Decimator<UPSAMPLE, 8> highpassDecimator;
@@ -88,37 +101,76 @@ struct VCF : Module {
 	}
 
 	void onReset() override {
-		filter.reset();
+		for (int i = 0; i < 4; i++)
+			filters[i].reset();
 	}
 
 	void process(const ProcessArgs &args) override {
 		if (!outputs[LPF_OUTPUT].isConnected() && !outputs[HPF_OUTPUT].isConnected()) {
-			outputs[LPF_OUTPUT].setVoltage(0.f);
-			outputs[HPF_OUTPUT].setVoltage(0.f);
 			return;
 		}
 
-		float input = inputs[IN_INPUT].getVoltage() / 5.f;
-		float drive = clamp(params[DRIVE_PARAM].getValue() + inputs[DRIVE_INPUT].getVoltage() / 10.f, 0.f, 1.f);
-		float gain = std::pow(1.f + drive, 5);
-		input *= gain;
+		float driveParam = params[DRIVE_PARAM].getValue();
+		float resParam = params[RES_PARAM].getValue();
+		float fineParam = params[FINE_PARAM].getValue();
+		fineParam = dsp::quadraticBipolar(fineParam * 2.f - 1.f) * 7.f / 12.f;
+		float freqCvParam = params[FREQ_CV_PARAM].getValue();
+		freqCvParam = dsp::quadraticBipolar(freqCvParam);
+		float freqParam = params[FREQ_PARAM].getValue();
+		freqParam = freqParam * 10.f - 5.f;
 
-		// Add -60dB noise to bootstrap self-oscillation
-		input += 1e-6f * (2.f * random::uniform() - 1.f);
+		int channels = std::max(1, inputs[IN_INPUT].getChannels());
 
-		// Set resonance
-		float res = clamp(params[RES_PARAM].getValue() + inputs[RES_INPUT].getVoltage() / 10.f, 0.f, 1.f);
-		filter.resonance = std::pow(res, 2) * 10.f;
+		for (int c = 0; c < channels; c += 4) {
+			auto *filter = &filters[c / 4];
 
-		// Set cutoff frequency
-		float pitch = 0.f;
-		if (inputs[FREQ_INPUT].isConnected())
-			pitch += inputs[FREQ_INPUT].getVoltage() * dsp::quadraticBipolar(params[FREQ_CV_PARAM].getValue());
-		pitch += params[FREQ_PARAM].getValue() * 10.f - 5.f;
-		pitch += dsp::quadraticBipolar(params[FINE_PARAM].getValue() * 2.f - 1.f) * 7.f / 12.f;
-		float cutoff = 261.626f * std::pow(2.f, pitch);
-		cutoff = clamp(cutoff, 1.f, 8000.f);
-		filter.setCutoff(cutoff);
+			float_4 input = float_4::load(inputs[IN_INPUT].getVoltages(c)) / 5.f;
+
+			// Drive gain
+			float_4 drive = driveParam;
+			if (inputs[DRIVE_INPUT].isPolyphonic())
+				drive += float_4::load(inputs[DRIVE_INPUT].getVoltages(c)) / 10.f;
+			else
+				drive += inputs[DRIVE_INPUT].getVoltage() / 10.f;
+			drive = clamp(drive, 0.f, 1.f);
+			float_4 gain = simd::pow(1.f + drive, 5);
+			input *= gain;
+
+			// Add -120dB noise to bootstrap self-oscillation
+			input += 1e-6f * (2.f * random::uniform() - 1.f);
+
+			// Set resonance
+			float_4 resonance = resParam;
+			if (inputs[RES_INPUT].isPolyphonic())
+				resonance += float_4::load(inputs[RES_INPUT].getVoltages(c)) / 10.f;
+			else
+				resonance += inputs[RES_INPUT].getVoltage() / 10.f;
+			resonance = clamp(resonance, 0.f, 1.f);
+			filter->resonance = simd::pow(resonance, 2) * 10.f;
+
+			// Get pitch
+			float_4 pitch = 0.f;
+			if (inputs[FREQ_INPUT].isPolyphonic())
+				pitch += float_4::load(inputs[FREQ_INPUT].getVoltages(c)) * freqCvParam;
+			else
+				pitch += inputs[FREQ_INPUT].getVoltage() * freqCvParam;
+			pitch += freqParam;
+			pitch += fineParam;
+			// Set cutoff
+			float_4 cutoff = dsp::FREQ_C4 * simd::pow(2.f, pitch);
+			cutoff = clamp(cutoff, 1.f, 8000.f);
+			filter->setCutoff(cutoff);
+
+			// Set outputs
+			filter->process(input, args.sampleTime);
+			float_4 lowpass = 5.f * filter->lowpass();
+			lowpass.store(outputs[LPF_OUTPUT].getVoltages(c));
+			float_4 highpass = 5.f * filter->highpass();
+			highpass.store(outputs[HPF_OUTPUT].getVoltages(c));
+		}
+
+		outputs[LPF_OUTPUT].setChannels(channels);
+		outputs[HPF_OUTPUT].setChannels(channels);
 
 		/*
 		// Process sample
@@ -142,9 +194,6 @@ struct VCF : Module {
 			outputs[HPF_OUTPUT].setVoltage(5.f * highpassDecimator.process(highpassBuf));
 		}
 		*/
-		filter.process(input, args.sampleTime);
-		outputs[LPF_OUTPUT].setVoltage(5.f * filter.lowpass);
-		outputs[HPF_OUTPUT].setVoltage(5.f * filter.highpass);
 	}
 };
 
