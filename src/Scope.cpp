@@ -39,7 +39,7 @@ struct Scope : Module {
 	int channelsX = 0;
 	int channelsY = 0;
 	int bufferIndex = 0;
-	float frameIndex = 0;
+	int frameIndex = 0;
 
 	dsp::BooleanTrigger sumTrigger;
 	dsp::BooleanTrigger extTrigger;
@@ -49,13 +49,14 @@ struct Scope : Module {
 
 	Scope() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(X_SCALE_PARAM, -2.f, 8.f, 0.f);
-		configParam(X_POS_PARAM, -10.f, 10.f, 0.f);
-		configParam(Y_SCALE_PARAM, -2.f, 8.f, 0.f);
-		configParam(Y_POS_PARAM, -10.f, 10.f, 0.f);
-		configParam(TIME_PARAM, 6.f, 16.f, 14.f);
+		configParam(X_SCALE_PARAM, -2.f, 8.f, 0.f, "X scale", " V/div", 1/2.f, 5);
+		configParam(X_POS_PARAM, -10.f, 10.f, 0.f, "X position", " V");
+		configParam(Y_SCALE_PARAM, -2.f, 8.f, 0.f, "Y scale", " V/div", 1/2.f, 5);
+		configParam(Y_POS_PARAM, -10.f, 10.f, 0.f, "Y position", " V");
+		const float timeBase = (float) BUFFER_SIZE / 6;
+		configParam(TIME_PARAM, 6.f, 16.f, 14.f, "Time", " ms/div", 1/2.f, 1000 * timeBase);
 		configParam(LISSAJOUS_PARAM, 0.f, 1.f, 0.f);
-		configParam(TRIG_PARAM, -10.f, 10.f, 0.f);
+		configParam(TRIG_PARAM, -10.f, 10.f, 0.f, "Trigger position", " V");
 		configParam(EXTERNAL_PARAM, 0.f, 1.f, 0.f);
 	}
 
@@ -120,19 +121,21 @@ struct Scope : Module {
 				return;
 			}
 
-			// Reset the Schmitt trigger so we don't trigger immediately if the input is high
-			if (frameIndex == 0) {
-				resetTrigger.reset();
-			}
 			frameIndex++;
 
-			// Must go below 0.1V to trigger
+			// Reset if triggered
+			float trigValue = params[TRIG_PARAM].getValue();
 			float gate = external ? inputs[TRIG_INPUT].getVoltage() : inputs[X_INPUT].getVoltage();
 
-			// Reset if triggered
-			float holdTime = 0.1f;
-			float trigValue = params[TRIG_PARAM].getValue();
-			if (resetTrigger.process(rescale(gate, trigValue - 0.1f, trigValue, 0.f, 1.f)) || (frameIndex >= args.sampleRate * holdTime)) {
+			if (resetTrigger.process(rescale(gate, trigValue, trigValue + 0.001f, 0.f, 1.f))) {
+				bufferIndex = 0;
+				frameIndex = 0;
+				return;
+			}
+
+			// Reset if we've been waiting for `holdTime`
+			const float holdTime = 0.5f;
+			if (frameIndex * args.sampleTime >= holdTime) {
 				bufferIndex = 0;
 				frameIndex = 0;
 				return;
@@ -165,22 +168,18 @@ struct ScopeDisplay : TransparentWidget {
 	std::shared_ptr<Font> font;
 
 	struct Stats {
-		// float vrms = 0.f;
 		float vpp = 0.f;
 		float vmin = 0.f;
 		float vmax = 0.f;
 
 		void calculate(float *buffer, int channels) {
-			// vrms = 0.f;
 			vmax = -INFINITY;
 			vmin = INFINITY;
 			for (int i = 0; i < BUFFER_SIZE * channels; i++) {
 				float v = buffer[i];
-				// vrms += v*v;
 				vmax = std::fmax(vmax, v);
 				vmin = std::fmin(vmin, v);
 			}
-			// vrms = std::sqrt(vrms / BUFFER_SIZE);
 			vpp = vmax - vmin;
 		}
 	};
