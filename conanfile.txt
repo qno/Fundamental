@@ -1,0 +1,11 @@
+[requires]
+VCVRackSDK/latest@qno/testing
+libsamplerate/latest@qno/testing
+
+[generators]
+cmake
+virtualrunenv
+
+[options]
+
+[imports]
