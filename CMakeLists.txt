@@ -18,11 +18,7 @@ file(GLOB_RECURSE SOURCES src/*.cpp)
 file(GLOB_RECURSE HEADERS include/*.hpp)
 source_group("Header Files" FILES ${HEADERS})
 
-include(add_binary)
-add_binary(src/sawTable.bin SAWTABLE_ASM)
-add_binary(src/triTable.bin TRITABLE_ASM)
-
-add_library(${LIB_NAME} MODULE ${SOURCES} ${SAWTABLE_ASM} ${TRITABLE_ASM})
+add_library(${LIB_NAME} MODULE ${SOURCES})
 
 target_link_libraries(${LIB_NAME} ${CONAN_LIBS})
 
