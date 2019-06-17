@@ -2,7 +2,6 @@ RACK_DIR ?= ../..
 
 FLAGS += -Idep/include
 SOURCES += $(wildcard src/*.cpp)
-BINARIES += $(wildcard src/*.bin)
 DISTRIBUTABLES += $(wildcard LICENSE*) res
 
 # Static libs
@@ -10,7 +9,6 @@ libsamplerate := dep/lib/libsamplerate.a
 OBJECTS += $(libsamplerate)
 
 # Dependencies
-DEP_LOCAL := dep
 DEPS += $(libsamplerate)
 
 $(libsamplerate):
