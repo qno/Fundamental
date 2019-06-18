@@ -13,7 +13,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
 file(GLOB_RECURSE SOURCES src/*.cpp)
-file(GLOB_RECURSE HEADERS include/*.hpp)
+file(GLOB_RECURSE HEADERS src/*.hpp)
 source_group("Header Files" FILES ${HEADERS})
 
 add_library(${LIB_NAME} MODULE ${SOURCES})
