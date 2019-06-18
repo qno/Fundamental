@@ -12,8 +12,6 @@ set(LIB_NAME plugin)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-enable_language(ASM_NASM)
-
 file(GLOB_RECURSE SOURCES src/*.cpp)
 file(GLOB_RECURSE HEADERS include/*.hpp)
 source_group("Header Files" FILES ${HEADERS})
