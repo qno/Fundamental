@@ -1,5 +1,5 @@
 [requires]
-VCVRackSDK/latest@qno/testing
+VCVRackSDK/latest@vcvrack/testing
 libsamplerate/latest@qno/testing
 
 [generators]
