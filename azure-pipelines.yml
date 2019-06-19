@@ -8,6 +8,8 @@ variables:
   cpt-pkg:  "conan_package_tools"
   bpt-pkg: "bincrafters_package_tools"
   linux-deps: "python3-setuptools python3-pip build-essential automake autoconf libtool cmake gcc g++ clang ninja-build git"
+  vcvracksdk-conan-upload-remote: "qno"
+  vcvracksdk-conan-remote: "$(vcvracksdk-conan-upload-remote) https://api.bintray.com/conan/qno/conan-public --insert"
 
   # Xcode Version overview: https://gist.github.com/yamaya/2924292
   # available versions: https://github.com/Microsoft/azure-pipelines-image-generation/blob/master/images/macos/macos-10.14-Readme.md
@@ -33,8 +35,8 @@ jobs:
           pip3 install --user $(conan-pkg)
           pip3 install --user $(cpt-pkg) $(bpt-pkg)
           conan user
+          conan remote add $(vcvracksdk-conan-remote)
           conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
-          conan remote add qno https://api.bintray.com/conan/qno/conan-public
           conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
         displayName: setup dependencies
       - script: |
@@ -62,8 +64,8 @@ jobs:
           pip3 install --user $(conan-pkg)
           pip3 install --user $(cpt-pkg) $(bpt-pkg)
           conan user
+          conan remote add $(vcvracksdk-conan-remote)
           conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
-          conan remote add qno https://api.bintray.com/conan/qno/conan-public
           conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
         displayName: setup dependencies
       - script: |
@@ -93,8 +95,8 @@ jobs:
           pip install --upgrade $(conan-pkg)
           pip install $(cpt-pkg) $(bpt-pkg)
           conan user
+          conan remote add $(vcvracksdk-conan-remote)
           conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
-          conan remote add qno https://api.bintray.com/conan/qno/conan-public
           conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
         displayName: setup dependencies
       - script: |
@@ -117,8 +119,8 @@ jobs:
           python -m pip install $(conan-pkg)
           python -m pip install $(cpt-pkg) $(bpt-pkg)
           conan user
+          conan remote add $(vcvracksdk-conan-remote)
           conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
-          conan remote add qno https://api.bintray.com/conan/qno/conan-public
           conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
         displayName: setup dependencies
       - script: |
@@ -143,8 +145,8 @@ jobs:
 #          python -m pip install $(conan-pkg)
 #          python -m pip install $(cpt-pkg) $(bpt-pkg)
 #          conan user
+#          conan remote add $(vcvracksdk-conan-remote)
 #          conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
-#          conan remote add qno https://api.bintray.com/conan/qno/conan-public
 #          conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
 #          mkdir build
 #          cd build
