@@ -45,7 +45,7 @@ jobs:
           mkdir build && cd build
           conan install .. -s compiler.libcxx=libstdc++11 -s build_type=Release --build=missing
           cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
-          cmake --build . --target install
+          cmake --build .
         displayName: build Plugin
   - job: LinuxClang
     pool:
@@ -76,7 +76,7 @@ jobs:
           mkdir build && cd build
           conan install .. -s build_type=Release --profile ../.ci/conan_profile_linux_clang8 --build=missing
           cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
-          cmake --build . --target install
+          cmake --build .
         displayName: build Plugin
   - job: MacOS1014
     pool:
@@ -104,7 +104,7 @@ jobs:
           mkdir build && cd build
           conan install .. -s build_type=Release --build=missing
           cmake -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . --target install
+          cmake --build .
         displayName: build Plugin
   - job: MinGW
     pool:
@@ -130,7 +130,7 @@ jobs:
           call .\activate_run.bat
           REM # see https://stackoverflow.com/a/45104058 - MinGW sh.exe must NOT be in your path
           cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_SH=CMAKE_SH-NOTFOUND ..
-          cmake --build . --target install
+          cmake --build .
           call .\deactivate_run.bat
         displayName: build Plugin
 #  - job: VisualStudio
