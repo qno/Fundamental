@@ -20,6 +20,11 @@ add_library(${LIB_NAME} MODULE ${SOURCES})
 
 target_link_libraries(${LIB_NAME} ${CONAN_LIBS})
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+  set_target_properties(${LIB_NAME} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  set_target_properties(${LIB_NAME} PROPERTIES SUFFIX ".dylib")
+endif ()
+
 set_target_properties(${LIB_NAME} PROPERTIES PREFIX "")
 
 file(GLOB LICENSE LICENSE*)
