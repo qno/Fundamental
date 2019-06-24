@@ -202,21 +202,21 @@ stages:
             artifact: Plugin-Linux
             patterns: "**/*.zip"
             targetPath: $(Build.ArtifactStagingDirectory)
-#        - task: DownloadPipelineArtifact@2
-#          inputs:
-#            artifact: Plugin-Linux-Clang
-#            patterns: "**/*.zip"
-#            targetPath: $(Build.ArtifactStagingDirectory)
-#        - task: DownloadPipelineArtifact@2
-#          inputs:
-#            artifact: Plugin-Mac
-#            patterns: "**/*.zip"
-#            targetPath: $(Build.ArtifactStagingDirectory)
-#        - task: DownloadPipelineArtifact@2
-#          inputs:
-#            artifact: Plugin-Win
-#            patterns: "**/*.zip"
-#            targetPath: $(Build.ArtifactStagingDirectory)
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: Plugin-Linux-Clang
+            patterns: "**/*.zip"
+            targetPath: $(Build.ArtifactStagingDirectory)
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: Plugin-Mac
+            patterns: "**/*.zip"
+            targetPath: $(Build.ArtifactStagingDirectory)
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            artifact: Plugin-Win
+            patterns: "**/*.zip"
+            targetPath: $(Build.ArtifactStagingDirectory)
         - script: |
             ls -la $(Build.ArtifactStagingDirectory)
             wget https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz
