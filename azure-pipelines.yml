@@ -9,7 +9,7 @@ resources:
       name: qno/VCVRack-Azure-CI-Templates
 
 variables:
-  -template: common-variables.yml@templates
+  - template: common-variables.yml@templates
 
 stages:
 - stage: build
