@@ -52,7 +52,7 @@ struct VoltageControlledOscillator {
 	T sinValue = 0.f;
 
 	void setPitch(T pitch) {
-		freq = dsp::FREQ_C4 * simd::pow(2.f, pitch);
+		freq = dsp::FREQ_C4 * dsp::approxExp2_taylor5(pitch + 30) / 1073741824;
 	}
 
 	void setPulseWidth(T pulseWidth) {
@@ -131,7 +131,7 @@ struct VoltageControlledOscillator {
 					syncDirection = simd::ifelse(sync, -syncDirection, syncDirection);
 				}
 				else {
-					T newPhase = simd::ifelse(sync, syncCrossing * deltaPhase, phase);
+					T newPhase = simd::ifelse(sync, (1.f - syncCrossing) * deltaPhase, phase);
 					// Insert minBLEP for sync
 					for (int i = 0; i < channels; i++) {
 						if (syncMask & (1 << i)) {
@@ -201,8 +201,9 @@ struct VoltageControlledOscillator {
 		if (analog) {
 			T x = phase + 0.25f;
 			x -= simd::trunc(x);
-			T halfX = (x < 0.5f);
-			x = 2 * x - simd::ifelse(halfX, 0.f, 1.f);
+			T halfX = (x >= 0.5f);
+			x *= 2;
+			x -= simd::trunc(x);
 			v = expCurve(x) * simd::ifelse(halfX, 1.f, -1.f);
 		}
 		else {
