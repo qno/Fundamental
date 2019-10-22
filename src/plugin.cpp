@@ -1,9 +1,9 @@
 #include "plugin.hpp"
 
 
-Plugin *pluginInstance;
+Plugin* pluginInstance;
 
-void init(rack::Plugin *p) {
+void init(rack::Plugin* p) {
 	pluginInstance = p;
 
 	p->addModel(modelVCO);
@@ -30,4 +30,6 @@ void init(rack::Plugin *p) {
 	p->addModel(modelSum);
 	p->addModel(modelViz);
 	p->addModel(modelMidSide);
+	p->addModel(modelNoise);
+	p->addModel(modelRandom);
 }
