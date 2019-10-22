@@ -1,5 +1,10 @@
-### ??? (in development)
+### 1.3.1 (2019-10-19)
+- Include LEDSliderHandle.svg from Rack v1.1.5 so older versions correctly render panels.
+
+### 1.3.0 (2019-10-19)
+- Add Random and Noise modules.
 - Make VCA-1 display polyphonic CV.
+- Add VU meters to level sliders in Mixer.
 
 ### 1.2.1 (2019-08-10)
 - Fix VCO hard sync bug, resulting in aliasing.
