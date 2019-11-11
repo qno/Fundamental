@@ -1,6 +1,5 @@
 [requires]
 VCVRackSDK/latest@vcvrack/testing
-libsamplerate/latest@qno/testing
 
 [generators]
 cmake
